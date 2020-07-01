@@ -13,6 +13,8 @@ program RAMA
    prop(:,:),value(:)
  CHARACTER(LEN=15)::filename
 !-----------------------input and initialisation--------------------------
+SUBROUTINE ALLOCATOR
+    IF 
  PRINT*,"ENTER THE INPUT FILE NAME"
  READ*,filename
  OPEN(15,FILE=filename,STATUS='OLD')
