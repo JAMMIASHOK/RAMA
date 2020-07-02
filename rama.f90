@@ -51,14 +51,14 @@ PROGRAM RAMA
   elements_2: DO iel=1,nels
     e_nd_num=g_nd_num(:,iel)
     e_coord=TRANSPOSE(g_coord(:,e_nd_num))
-    
-    245 format(1x,2f6.2)
     CALL truss(kele,prop(1,etype(iel)),e_coord)
     kv=0
     e_st_v=g_e_st_m(:,iel)
     CALL assemble(kv,kele,e_st_v)
     kstruct=kv+kstruct
   END DO elements_2
+  write(unit=11,fmt=245)kstruct
+  245 format(12f12.3)
   
 !----------------------Load and boundary conditions----------------------
   bndry=eqn
@@ -71,6 +71,7 @@ PROGRAM RAMA
   end do
   ALLOCATE(ksub(neq-count,neq-count))
   ALLOCATE(res_eq(count))
+  ksub=0
   count=0
   do i=1,ndim
     do j=1,nn
@@ -82,9 +83,11 @@ PROGRAM RAMA
   end do
   
   print*,res_eq
+ CALL submat(neq,count,res_eq,ksub,kstruct)
+ write(unit=11,fmt=255)ksub
+ 255 format(9f12.3)
+ 
 
- 
- 
 
 END PROGRAM RAMA
 

@@ -82,6 +82,9 @@ SUBROUTINE end_to_est(e_nd_num,eqn,e_st_v)
 
 
     SUBROUTINE assemble(kv,kele,e_st_v)
+        !
+        ! maps elements stiffness to corresponding rows and columns in global stiffness matrix
+        !
         IMPLICIT NONE
         INTEGER,PARAMETER::iwp=SELECTED_REAL_KIND(3)
         REAL(iwp),INTENT(IN)::kele(:,:)
@@ -103,7 +106,51 @@ SUBROUTINE end_to_est(e_nd_num,eqn,e_st_v)
     END SUBROUTINE assemble
 
     
+    SUBROUTINE submat(neq,count,res_eq,ksub,kstruct)
 
+        !
+        ! forms submatrix by eleminating displaccement boundary conditions from global stiffness matrix
+        !
+
+        IMPLICIT NONE
+        INTEGER,PARAMETER::iwp=SELECTED_REAL_KIND(3)
+        REAL(iwp),INTENT(IN)::kstruct(:,:)
+        INTEGER,INTENT(IN)::res_eq(:)
+        REAL(iwp),INTENT(OUT)::ksub(:,:)
+        REAL(iwp),ALLOCATABLE::temp(:)
+        INTEGER::i,j,k,count,neq,p,count1,count2,t=1,r
+        allocate(temp(neq-count))
+        do i=1,neq
+            do j=1,neq
+                count1=0
+                count2=0
+                do k=1,count
+                    if(i==res_eq(k))then
+                        count1=count1+1
+                    endif
+                end do
+                do k=1,count
+                    if(j==res_eq(k))then
+                        count2=count2+1
+                    endif
+                end do
+                    if(count1==0.and.count2==0)then
+                        temp(t)=kstruct(i,j)
+                        t=t+1
+                    endif
+            end do 
+        end do
+        t=1
+        r=neq-count
+        do i=1,r
+            do j=1,r
+                ksub(i,j)=temp(t)
+                t=t+1
+            end do
+        end do
+
+        RETURN
+    end subroutine submat
 
 
 
