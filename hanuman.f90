@@ -106,20 +106,20 @@ SUBROUTINE end_to_est(e_nd_num,eqn,e_st_v)
     END SUBROUTINE assemble
 
     
-    SUBROUTINE submat(neq,count,res_eq,ksub,kstruct)
+    SUBROUTINE submat(neq,count,res_eq,ksub,kstruct,full_load,load_sub)
 
         !
-        ! forms submatrix by eleminating displaccement boundary conditions from global stiffness matrix
+        ! forms submatrix of stiffness and loads by eleminating displaccement boundary conditions from global stiffness matrix and full_load matrix
         !
 
         IMPLICIT NONE
         INTEGER,PARAMETER::iwp=SELECTED_REAL_KIND(3)
-        REAL(iwp),INTENT(IN)::kstruct(:,:)
+        REAL(iwp),INTENT(IN)::kstruct(:,:),full_load(:)
         INTEGER,INTENT(IN)::res_eq(:)
-        REAL(iwp),INTENT(OUT)::ksub(:,:)
+        REAL(iwp),INTENT(OUT)::ksub(:,:),load_sub(:)
         REAL(iwp),ALLOCATABLE::temp(:)
-        INTEGER::i,j,k,count,neq,p,count1,count2,t=1,r
-        allocate(temp(neq-count))
+        INTEGER::i,j,k,count,neq,p,count1,count2,t=1,r,q=1,count3
+        allocate(temp((neq-count)*(neq-count)))
         do i=1,neq
             do j=1,neq
                 count1=0
@@ -136,19 +136,39 @@ SUBROUTINE end_to_est(e_nd_num,eqn,e_st_v)
                 end do
                     if(count1==0.and.count2==0)then
                         temp(t)=kstruct(i,j)
+                        
+                        
                         t=t+1
+                        
                     endif
             end do 
+            
+            
         end do
+        print*,temp
         t=1
         r=neq-count
+        
         do i=1,r
             do j=1,r
                 ksub(i,j)=temp(t)
                 t=t+1
             end do
         end do
-
+        print*,ksub
+        do i=1,neq
+            count3=0
+            do k=1,count
+             if(i==res_eq(k))then
+                count3=count3+1
+             endif
+            end do
+            if(count3==0)then
+            load_sub(q)=full_load(i)
+            q=q+1
+            endif
+        end do
+        print*,"resched here"
         RETURN
     end subroutine submat
 
