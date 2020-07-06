@@ -7,116 +7,103 @@ PROGRAM RAMA
     USE Hanuman
     IMPLICIT NONE
     INTEGER,PARAMETER::iwp=SELECTED_REAL_KIND(3)
- INTEGER::fixed_freedoms,i,iel,k,loaded_nodes,ndim,ndof,nels,neq,nod=2, &
-   nodof,nn,nprops=1,np_types,nr,nlen,count=0,j,eq_num=1,load_count=1
+
+ INTEGER::fixed_freedoms,i,iel,k,loaded_nodes,ndim,ndofb,ndofp,nelsb,nelsp,neq,nodb=2,nodp, &
+   nodofp=2,nodofb=3,nn,nnp,nnb,nprops=1,bnp_types,pnp_types,nr,nlen,count=0,j,eq_num=1,load_count=1,strt
+
  REAL(iwp)::axial,penalty=1.0e20_iwp,zero=0.0_iwp
 !-------------------Dynamic Arrays---------------!
- INTEGER,ALLOCATABLE::etype(:),e_st_v(:),g_e_st_m(:,:),g_nd_num(:,:),eqn(:,:), &
-   node(:),e_nd_num(:),sense(:),bndry(:,:),res_eq(:),load(:,:),load_eq(:)
- REAL(iwp),ALLOCATABLE::action(:),e_coord(:,:),e_dis(:),g_coord(:,:),kele(:,:), &
-   kstruct(:,:),k_fill(:,:),loads(:),prop(:,:),value(:),kv(:,:),ksub(:,:),load_val(:),full_load(:),load_sub(:)
+ INTEGER,ALLOCATABLE::betype(:),pe_typr(:),e_st_vb(:),e_st_vp(:),g_e_st_mb(:,:),g_e_st_mp(:,:),g_nd_numb(:,:),g_nd_nump(:,:),eqnb(:,:),eqnp(:,:), &
+   node(:),e_nd_numb(:),e_nd_nump(:),sense(:),bndry(:,:),res_eq(:),load(:,:),load_eq(:)
+
+ REAL(iwp),ALLOCATABLE::actionb(:),actionp(:),e_coordb(:,:),e_coordp(:,:),e_disp(:),e_disb(:),g_coordb(:,:),g_coordp(:,:),keleb(:,:),kelep(:,:),  &
+   kstruct(:,:),loads(:),pprop(:,:),x_coords(:),y_coords(:),points(:,:),bprop(:,:),&
+   value(:),kv(:,:),ksub(:,:),load_val(:),full_load(:),load_sub(:),shp_fun(:),jac(:,:), &
+   loc_sp_der(:,:),g_sp_der(:,:),str_disp_m(:,:)
+
  CHARACTER(LEN=15)::filename
-!-----------------PROGRAM STARTS HERE-------------!
+!_________________________________________________!
+!                                                 !
+!-------------PROGRAM STARTS HERE-----------------!
+!_________________________________________________!
+
  PRINT*,"ENTER THE INPUT FILENAME"
  READ*,filename
  OPEN(UNIT=10,FILE=filename)
  OPEN(UNIT=11,FILE='RESULT.dat',STATUS='NEW')
- READ(10,*)nels,nn,ndim,np_types
- nodof=ndim
- ndof=nod*nodof
- ALLOCATE(eqn(nodof,nn),bndry(nodof,nn),load(nodof,nn),kele(ndof,ndof),e_coord(nod,ndim),g_coord(ndim,nn),    &
-   e_dis(ndof),action(ndof),g_nd_num(nod,nels),e_nd_num(nod),e_st_v(ndof),g_e_st_m(ndof,nels),&
-   etype(nels),prop(nprops,np_types))
- READ(10,*)prop
- etype=1
- IF(np_types>1)READ(10,*)etype
- READ(10,*)g_coord
- 
- READ(10,*)g_nd_num 
- 
- eqn=1
- CALL num_eq(eqn)
- 
- neq=MAXVAL(eqn)
+
+ !------------------------------------TOTAL MODEL DATA-----------------------------!
+
+ READ(10,*)nelsb,nnb,ndim,bnp_types               !beam
+ nodofb=ndim
+ ndofb=nodb*nodofb
+ print*,ndofb
+! READ(10,*)element,nodp,dir,nxe,nye,nip,pnp_types  !plate
+! CALL mesh_size(element,nodp,nelsp,nnp,nxe,nye)
+! ndofp=nodp*nodofp
+
+ !------------------------------------BEAM----------------------------------------------!
+
+ ALLOCATE(eqnb(nodofb,nnb),bndry(nodofb,nnb),load(nodofb,nnb),keleb(ndofb,ndofb),e_coordb(nodb,ndim),g_coordb(ndim,nnb),    &
+   e_disb(ndofb),actionb(ndofb),g_nd_numb(nodb,nelsb),e_nd_numb(nodb),e_st_vb(ndofb),g_e_st_mb(ndofb,nelsb),&
+   betype(nelsb),bprop(nprops,bnp_types))
+
+ !------------------------------------------------------------------------------------------
+ READ(10,*)bprop
+ betype=1
+ IF(bnp_types>1)READ(10,*)betype
+ READ(10,*)g_coordb
+ READ(10,*)g_nd_numb
+ print*,g_nd_numb 
+ eqnb=1
+ strt=1
+ CALL num_eq(eqnb,strt) 
+ neq=MAXVAL(eqnb)
+print*,neq
+ !---------------------------------------------------PLATE-----------------------------------------
+
+ !allocate(neqp(nodofp,nnp))
+ !eqnp=1
+ !strt=eqnb
+ !call num_eq(eqnp,strt)
+ !neq=maxval(eqnp)
+
+!--------------------------------------------------------------
+!------------------------------GLOBAL--------------------------
+
  ALLOCATE(kstruct(neq,neq),kv(neq,neq),full_load(neq))
 
-!-----------------------Loop over elements to form global steering matrix--------------!
- elements_1: DO iel=1,nels
-   e_nd_num=g_nd_num(:,iel)
-   CALL end_to_est(e_nd_num,eqn,e_st_v)
-   g_e_st_m(:,iel)=e_st_v   
-  END DO elements_1
 
+!________________________________________________________________________!
+!                                                                        !
+!                          BEAM COMPUTATIONS                             !
+!________________________________________________________________________!
+
+!-----------------------Loop over elements to form global steering matrix--------------!
+ elements_1: DO iel=1,nelsb
+   e_nd_numb=g_nd_numb(:,iel)
+   CALL end_to_est(e_nd_numb,eqnb,e_st_vb)
+   g_e_st_mb(:,iel)=e_st_vb   
+  END DO elements_1
+print*,"reached here"
+print*,g_e_st_mb
+print*,e_st_vb
 !-----------------------global stiffness matrix assembly------------------
   kstruct=0
-  elements_2: DO iel=1,nels
-    e_nd_num=g_nd_num(:,iel)
-    e_coord=TRANSPOSE(g_coord(:,e_nd_num))
-    CALL truss(kele,prop(1,etype(iel)),e_coord)
+  elements_2: DO iel=1,nelsb
+    e_nd_numb=g_nd_numb(:,iel)
+    e_coordb=TRANSPOSE(g_coordb(:,e_nd_numb))
+    CALL truss(keleb,bprop(1,betype(iel)),e_coordb)
     kv=0
-    e_st_v=g_e_st_m(:,iel)
-    CALL assemble(kv,kele,e_st_v)
+    print*,"reached2"
+    e_st_vb=g_e_st_mb(:,iel)
+    CALL assemble(kv,keleb,e_st_vb)
     kstruct=kv+kstruct
   END DO elements_2
   write(unit=11,fmt=245)kstruct
   245 format(12f12.3)
  ! write(11,*)" "
-  
-!----------------------boundary conditions----------------------
-  bndry=eqn
-  READ(10,*)nr,(k,bndry(:,k),i=1,nr)  !boundary conditions
-    do i=1,ndim
-      do j=1,nn
-        IF(bndry(i,j)==0)count=count+1
-    end do
-  end do
-  ALLOCATE(ksub(neq-count,neq-count),load_sub(neq-count))
-  ALLOCATE(res_eq(count))
-  ksub=0
-  count=0
-  do j=1,nn
-    do i=1,nodof
-      IF(bndry(i,j)==0) THEN
-      count=count+1
-      res_eq(count)=eqn(i,j)
-      ENDIF
-    end do
-  end do
-  print*,res_eq
- !--------------loads----------------------
-  load=0
-  read(10,*)loaded_nodes,(k,load(:,k),i=1,loaded_nodes)
-  print*,load
-  allocate(load_eq(loaded_nodes),load_val(loaded_nodes))
-  
-  do j=1,nn
-    do i=1,nodof
-      
-      if(load(i,j)/=0)then
-        load_eq(load_count)=eq_num
-        load_val(load_count)=load(i,j)
-        load_count=load_count+1
-      endif
-      eq_num=eq_num+1
-    end do
-  end do
-  print*,load_eq
-  print*,load_val
-  full_load=0
-  do i=1,load_count-1
-    full_load(load_eq(i))=load_val(i)
-  end do
-  print*,full_load
- 
- CALL submat(neq,count,res_eq,ksub,kstruct,full_load,load_sub)
- print*,"resched here"
- 
- write(unit=11,fmt=255)ksub
- 255 format(9f12.3)
-! write(11,*)" "
- write(unit=11,fmt=265)load_sub
- 265 format(9f12.3)
-!----------------------------SOLUTION PROCEDURE----------------------------------
+
 
 
 

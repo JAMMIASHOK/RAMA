@@ -2,16 +2,17 @@ MODULE Hanuman
 
 CONTAINS
 
-SUBROUTINE num_eq(eqn)
+SUBROUTINE num_eq(eqn,strt)
     !
 ! This subroutine forms the eqn matrix.
 !
  IMPLICIT NONE
  INTEGER,INTENT(IN OUT)::eqn(:,:)
+ integer,intent(in)::strt
  INTEGER::i,j,m
  m=0
   DO j=1,UBOUND(eqn,2)
-   DO i=1,UBOUND(eqn,1)
+   DO i=strt,UBOUND(eqn,1)
        m=m+1
        eqn(i,j)=m
        
@@ -27,7 +28,7 @@ SUBROUTINE end_to_est(e_nd_num,eqn,e_st_v)
     !
      IMPLICIT NONE
      INTEGER,INTENT(IN)::e_nd_num(:),eqn(:,:)  
-     INTEGER,INTENT(OUT)::e_st_v(:)
+     INTEGER,INTENT(INOUT)::e_st_v(:)
      INTEGER::i,k,nod,nodof 
      nod=UBOUND(e_nd_num,1) 
      nodof=UBOUND(eqn,1)
@@ -145,7 +146,7 @@ SUBROUTINE end_to_est(e_nd_num,eqn,e_st_v)
             
             
         end do
-        print*,temp
+        
         t=1
         r=neq-count
         
@@ -155,7 +156,7 @@ SUBROUTINE end_to_est(e_nd_num,eqn,e_st_v)
                 t=t+1
             end do
         end do
-        print*,ksub
+        
         do i=1,neq
             count3=0
             do k=1,count
@@ -168,13 +169,11 @@ SUBROUTINE end_to_est(e_nd_num,eqn,e_st_v)
             q=q+1
             endif
         end do
-        print*,"resched here"
+        
         RETURN
     end subroutine submat
 
-
-
-
+    
     
 
 END MODULE Hanuman
